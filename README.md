@@ -1,4 +1,4 @@
-# About Staking Calculator Tool
+# About Staking Calculator Tool (Work in Progress Information Missing Like Install Scripts)
 
 This command line tool takes a JSON input file refer to the example below. Refer to code comments for more information on each parameter in the JSON file. This tool is an estimation that is a bit more dynamic than the offical online calculator. 
 
