@@ -13,13 +13,13 @@ Rust must be installed on the target system. Please refer to https://www.rust-la
 # Install via Powershell (Never Execute Script Without Understanding Risk)
 
 ```
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('install.ps1'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/zulrah93/ada_calc/master/install.ps1'))
 ```
 
 # Install via Bash (Never Execute Script Without Understanding Risk)
 
 ```
-sh -c "$(curl -fsSL install.sh)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/zulrah93/ada_calc/master/install.sh)"
 ```
 
 # How to Build and Run From Source
