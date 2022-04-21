@@ -25,7 +25,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/zulrah93/ada_calc/master/i
 # How to Build and Run From Source
 
 ```
-    git clone https://www.example.com/repo.git
+    git clone https://github.com/zulrah93/ada_calc.git
     cd ada_calc
     cargo run --release
 ```
