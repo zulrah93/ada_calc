@@ -2,6 +2,10 @@
 
 This command line tool takes a JSON input file refer to the example below. Refer to code comments for more information on each parameter in the JSON file. This tool is an estimation that is a bit more dynamic than the offical online calculator. 
 
+# Supported Platforms
+
+Supports all operating systems that Rust supports unless a dependency is specific to a platform although I will try my best as maintainer to not do that. If you feel a dependency is locking you out of using it please open a ticket in GitHub and I will see if we can find an alternative.
+
 # Disclaimer
 
 This command line tool is not investment advice. All forms of investment carries risk. This software and its maintainer are not responsible for any possible losses. Due to the nature of floating point math there will be errors in the calculation. So please use this tool for estimations; feel free to fork or contribute.
@@ -30,6 +34,20 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/zulrah93/ada_calc/master/i
     cargo run --release
 ```
 
+
+# Program Options
+
+```
+USAGE:
+    ada_calc.exe [OPTIONS]
+
+OPTIONS:
+    -g, --generate_csv    Generate a CSV file of the calculated data output will be
+                          raw_ada_calc_data_<timestamp>.csv
+    -h, --help            Print help information
+    -v, --verbose         Show Full Output to Terminal/Output
+    -V, --version         Print version information
+```
 
 # Example JSON Input File
 
@@ -1878,3 +1896,10 @@ Day 1825: 12836.9600889964 ADA @ $2.34 = $30045.87 [Pay Day: Yes]
 Day 1826: 12836.9600889964 ADA @ $2.34 = $30060.89 [Pay Day: No]
 Final Result: 12836.9600889964 ADA @ $2.34 = $30060.89 Gainz: 131.27%
 ```
+
+
+# How to Help
+
+While this software is free to do what you like without warranty; you may help by contributing to the source code or donating to this ADA wallet donations are to help fund my lifestyle so please don't feel pressured to donate:
+
+addr1q8yaeyy92e5xze9vh5f24unkk4wu9rxpdpm3pzs2d2cf7f3v7tkzv0su0ny8l33z4zzugrxhhp8y0r0h4qxxtlgjan5spl5ysz 
