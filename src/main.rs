@@ -24,7 +24,17 @@ use clap::{arg, Command};
 use serde::{Deserialize, Serialize};
 use std::fs::{read_to_string, OpenOptions};
 use std::io::Write;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
+#[allow(unused_imports)]
+use poloto::prelude::*;
+
+// Used to get a Unix timestamp for file output purposes
+fn get_epoch_ms() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis()
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct StakedCardanoPool {
@@ -41,13 +51,17 @@ struct StakedCardanoPool {
 struct StakedCardanoPoolResult {
     final_ada_amount: f64,
     final_ada_price: f64,
+    amount_historical: Vec<f64>,
+    price_historical : Vec<f64>
 }
 
 impl StakedCardanoPoolResult {
-    fn new(final_ada_amount: f64, final_ada_price: f64) -> Self {
+    fn new(final_ada_amount: f64, final_ada_price: f64, amount_historical: Vec<f64>,  price_historical: Vec<f64>) -> Self {
         StakedCardanoPoolResult {
             final_ada_amount: final_ada_amount,
             final_ada_price: final_ada_price,
+            amount_historical : amount_historical,
+            price_historical : price_historical
         }
     }
 
@@ -71,6 +85,8 @@ fn calculate_staked_pool(
     let mut ada_per_year = ada * pool.annual_yield;
 
     let mut buffer = String::from("Day,ADA,Price,Total\n");
+    let mut adas : Vec<f64> = Vec::new();
+    let mut prices : Vec<f64> = Vec::new();
 
     println!(
         "Initial ADA Per Year (Excluding Compounding Interest): {}",
@@ -89,6 +105,12 @@ fn calculate_staked_pool(
     }
 
     for day in 1..days {
+
+        if args.generate_graph {
+            adas.push(ada);
+            prices.push(price);
+        }
+
         if args.generate_csv {
             buffer += format!("{},{},{},{}\n", day, ada, price, ada * price).as_str();
         }
@@ -123,7 +145,7 @@ fn calculate_staked_pool(
     if args.generate_csv {
         let csv_filename = format!(
             "raw_ada_calc_data_{}.csv",
-            SystemTime::now().elapsed().unwrap().as_secs()
+            get_epoch_ms()
         );
         if let Ok(file) = OpenOptions::new()
             .write(true)
@@ -140,21 +162,27 @@ fn calculate_staked_pool(
             println!("Error: Failed to Write CSV [{}] to Disk.", &csv_filename);
         }
     }
-
-    StakedCardanoPoolResult::new(ada, price)
+    if args.generate_graph {
+        StakedCardanoPoolResult::new(ada, price, adas, prices) // These vectors will get moved rather than copied -- take note
+    }
+    else {
+         StakedCardanoPoolResult::new(ada, price, adas, prices) // Same as above! -- Rust uses move by default for vector this is intentional
+    }
 }
 
 #[derive(Debug)]
 struct CommandOptions {
     verbose: bool,      // Show all possible output to standard output i.e. terminal
     generate_csv: bool, // Generate the data in csv output for data science purposes
+    generate_graph : bool // Generate a graph svg for data visualization purposes
 }
 
 impl CommandOptions {
-    fn new(v: bool, g: bool) -> Self {
+    fn new(v: bool, g: bool, gg: bool) -> Self {
         CommandOptions {
             verbose: v,
             generate_csv: g,
+            generate_graph : gg
         }
     }
 }
@@ -170,11 +198,21 @@ fn get_command_options() -> CommandOptions {
     .arg(arg!(
         -g --generate_csv ... "Generate a CSV file of the calculated data output will be raw_ada_calc_data_<timestamp>.csv"
     ))
+    .arg(arg!(
+        -G --generate_graph ... "Generate a line graph showing two data points the ada over time and price over time ada_calc_graph_<timestamp>.csv"
+    ))
     .get_matches();
     CommandOptions::new(
         matches.is_present("verbose"),
         matches.is_present("generate_csv"),
+        matches.is_present("generate_graph")
     )
+}
+
+fn generate_graph(_path : &str, result : &StakedCardanoPoolResult) {
+        let _prices = &result.price_historical;
+        let _adas = &result.amount_historical;
+        // Implement logic
 }
 
 fn main() {
@@ -186,6 +224,9 @@ fn main() {
     if let Ok(buffer) = read_to_string("pool.json") {
         let pool_info: StakedCardanoPool = serde_json::from_str(&buffer).unwrap();
         let result = calculate_staked_pool(&pool_info, &args);
+        if args.generate_graph {
+            generate_graph("", &result);
+        }
         println!(
             "Final Result: {} ADA @ ${:.2} = ${:.2} Gainz: {:.2}%",
             result.final_ada_amount,

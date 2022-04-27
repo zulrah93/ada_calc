@@ -1,9 +1,9 @@
 {
-    "ada": 9994.464424,
+    "ada": 11897,
     "fetch_price_via_api" : false,
-    "initial_price" : 0.94,
+    "initial_price" : 0.90,
     "price_yield" : 1.004,
     "annual_yield" : 0.05,
     "epoch_in_days" : 5,
-    "years_holding" : 30
+    "years_holding" : 1
 }
