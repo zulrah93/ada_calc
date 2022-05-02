@@ -38,16 +38,40 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/zulrah93/ada_calc/master/i
 # Program Options
 
 ```
+ADA Staking CLI Tool 0.1.0
+zulrah <email none of your business ≡ƒñú>
+ADA Staking Calculator For Data Analysis and Visualization Purposes
+
 USAGE:
     ada_calc.exe [OPTIONS]
 
 OPTIONS:
-    -g, --generate_csv    Generate a CSV file of the calculated data output will be
-                          raw_ada_calc_data_<timestamp>.csv
-    -h, --help            Print help information
-    -v, --verbose         Show Full Output to Terminal/Output
-    -V, --version         Print version information
+    -g, --generate_csv      Generate a CSV file of the calculated data output will be
+                            raw_ada_calc_data_<timestamp>.csv
+    -G, --generate_graph    Generate a line graph showing two data points the ada over time and
+                            price over time ada_calc_graph_<timestamp>.csv
+    -h, --help              Print help information
+    -v, --verbose           Show Full Output to Terminal/Output
+    -V, --version           Print version information
 ```
+
+# Example Input for SVG Output 
+
+```
+{
+    "ada": 10,
+    "fetch_price_via_api" : false,
+    "initial_price" : 1.0,
+    "price_yield" : 1.0009,
+    "annual_yield" : 0.05,
+    "epoch_in_days" : 5,
+    "years_holding" : 1
+}
+```
+
+# Example Graph SVG Output (HTML Option Will Be Addded In The Future)
+
+<img src="./example_outputs/graph_sample.svg" alt="sample_output">
 
 # Example JSON Input File
 

@@ -1,8 +1,8 @@
 {
-    "ada": 11897,
+    "ada": 10,
     "fetch_price_via_api" : false,
-    "initial_price" : 0.90,
-    "price_yield" : 1.004,
+    "initial_price" : 1.0,
+    "price_yield" : 1.0009,
     "annual_yield" : 0.05,
     "epoch_in_days" : 5,
     "years_holding" : 1
