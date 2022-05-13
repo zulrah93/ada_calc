@@ -43,7 +43,7 @@ struct StakedCardanoPool {
     price_yield: f64, // Daily average increase in price of ADA 1% is a good conservative number
     annual_yield: f64, // Expressed as a fraction for example 5% is 0.05
     epoch_in_days: u64, // How many days before a payout happens this is fixed by ADA currently 5 days but can be changed for future purposes
-    years_holding: u64, // How many years will it be staked using 64-bit unsigned integer to let people experiment with unrealistic year amounts. Gotta future proof 🤣
+    years_holding: f64, // How many years will it be staked less than 1 one means less than a year for exaple 0.5 means 365.25/2 (roughly since its floating point values)
 }
 
 #[derive(Debug, Default)]
@@ -87,7 +87,7 @@ fn calculate_staked_pool(
 ) -> StakedCardanoPoolResult {
     let mut ada = pool.ada;
     let mut price = pool.initial_price;
-    let days = ((pool.years_holding as f64) * 365.25) as u64 + 1;
+    let days = (pool.years_holding * 365.25) as u64 + 1;
     let epochs_per_year = 365.25 / (pool.epoch_in_days as f64);
     let mut ada_per_year = ada * pool.annual_yield;
 
@@ -172,19 +172,21 @@ fn calculate_staked_pool(
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 struct CommandOptions {
     verbose: bool,        // Show all possible output to standard output i.e. terminal
     generate_csv: bool,   // Generate the data in csv output for data science purposes
-    generate_graph: bool, // Generate a graph svg for data visualization purposes
+    generate_graph: bool, // Generate a graph svg for data visualization purposes,
+    json_option: Option<String>,
 }
 
 impl CommandOptions {
-    fn new(v: bool, g: bool, gg: bool) -> Self {
+    fn new(v: bool, g: bool, gg: bool, json_option: Option<String>) -> Self {
         CommandOptions {
             verbose: v,
             generate_csv: g,
             generate_graph: gg,
+            json_option: json_option,
         }
     }
 }
@@ -203,16 +205,26 @@ fn get_command_options() -> CommandOptions {
     .arg(arg!(
         -G --generate_graph ... "Generate a line graph showing two data points the ada over time and price over time ada_calc_graph_<timestamp>.csv"
     ))
+    .arg( arg!(
+        -p --pool_json <JSON> "Pass JSON input via command option"
+    ))
     .get_matches();
+    let json = if matches.is_present("pool_json") {
+        Some(String::from(
+            matches.value_of("pool_json").unwrap_or_default(),
+        ))
+    } else {
+        None
+    };
     CommandOptions::new(
         matches.is_present("verbose"),
         matches.is_present("generate_csv"),
         matches.is_present("generate_graph"),
+        json,
     )
 }
 
 fn generate_graph(path: String, result: &StakedCardanoPoolResult) {
-
     let prices = &result.price_historical;
     let adas = &result.amount_historical;
 
@@ -247,29 +259,36 @@ fn generate_graph(path: String, result: &StakedCardanoPoolResult) {
         println!("Error: Failed to Write SVG [{}] to Disk.", &path);
         println!("Reason: Unknown");
     }
+}
 
+fn execute_json(buffer: &String, args: &CommandOptions) {
+    let pool_info: StakedCardanoPool = serde_json::from_str(&buffer).unwrap();
+    let result = calculate_staked_pool(&pool_info, &args);
+    println!(
+        "Final Result: {} ADA @ ${:.2} = ${:.2} Gainz: {:.2}%",
+        result.final_ada_amount,
+        result.final_ada_price,
+        result.total(),
+        100.0 + result.yield_as_percentage(&pool_info)
+    );
+    if args.generate_graph {
+        generate_graph(format!("ada_growth_graph_{}.svg", get_epoch_ms()), &result);
+        println!("Generated Graph in SVG Format Under ada_growth_graph_<timestamp>.svg");
+    }
 }
 
 fn main() {
-    let args = get_command_options();
+    let args = &get_command_options();
     if args.generate_csv {
         println!("CSV will be saved in current working directory.");
     }
-    if let Ok(buffer) = read_to_string("pool.json") {
-        let pool_info: StakedCardanoPool = serde_json::from_str(&buffer).unwrap();
-        let result = calculate_staked_pool(&pool_info, &args);
-        println!(
-            "Final Result: {} ADA @ ${:.2} = ${:.2} Gainz: {:.2}%",
-            result.final_ada_amount,
-            result.final_ada_price,
-            result.total(),
-            100.0 + result.yield_as_percentage(&pool_info)
-        );
-        if args.generate_graph {
-            generate_graph(format!("ada_growth_graph_{}.svg", get_epoch_ms()), &result);
-            println!("Generated Graph in SVG Format Under ada_growth_graph_<timestamp>.svg");
-        }
+    if let Some(buffer) = &args.json_option {
+        execute_json(buffer, args);
+    } else if let Ok(buffer) = &read_to_string("pool.json") {
+        execute_json(buffer, args);
     } else {
-        println!("Failed to find pool.json in current working directory!");
+        println!(
+            "Failed to find pool.json in current working directory or through command option!"
+        );
     }
 }
