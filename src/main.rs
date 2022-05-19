@@ -1,7 +1,7 @@
 /*
 
 ADA Staking CLI Tool (Not Offical or Investment Advice ⚠️)
-Copyright (C) 2022  zulrah <email none of your business 🤣>
+Copyright (C) 2022  zulrah
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -79,11 +79,18 @@ impl StakedCardanoPoolResult {
     fn yield_as_percentage(&self, pool_info: &StakedCardanoPool) -> f64 {
         (self.total() / (pool_info.initial_price * pool_info.ada)) * 100.0
     }
+
+}
+
+// Only used for HTML output purposes
+fn print_html_newline() {
+    println!("<br>");
 }
 
 fn calculate_staked_pool(
     pool: &StakedCardanoPool,
     args: &CommandOptions,
+    output_to_stdout : bool
 ) -> StakedCardanoPoolResult {
     let mut ada = pool.ada;
     let mut price = pool.initial_price;
@@ -100,8 +107,15 @@ fn calculate_staked_pool(
         ada_per_year
     );
 
+    if output_to_stdout {
+        print_html_newline();
+    }
+
     if args.verbose {
         println!("Day 0: {} ADA @ ${:.2} = ${:.2}", ada, price, ada * price);
+        if output_to_stdout {
+            print_html_newline();
+        }
     } else {
         println!(
             "Starting Result: {} ADA @ ${:.2} = ${:.2}",
@@ -109,6 +123,9 @@ fn calculate_staked_pool(
             price,
             ada * price
         );
+        if output_to_stdout {
+            print_html_newline();
+        }
     }
 
     for day in 1..days {
@@ -133,6 +150,9 @@ fn calculate_staked_pool(
                     price,
                     ada * price
                 );
+                if output_to_stdout {
+                    print_html_newline();
+                }
             }
         } else {
             price *= pool.price_yield; // Increase price by average positive change no point in calculating a downard trend but you may use less than 1
@@ -144,6 +164,9 @@ fn calculate_staked_pool(
                     price,
                     ada * price
                 );
+                if output_to_stdout {
+                    print_html_newline();
+                }
             }
         }
     }
@@ -194,7 +217,7 @@ impl CommandOptions {
 fn get_command_options() -> CommandOptions {
     let matches = Command::new("ADA Staking CLI Tool")
     .version(env!("CARGO_PKG_VERSION"))
-    .author("zulrah <email none of your business 🤣>")
+    .author("zulrah")
     .about("ADA Staking Calculator For Data Analysis and Visualization Purposes")
     .arg(arg!(
         -v --verbose ... "Show Full Output to Terminal/Output"
@@ -224,7 +247,7 @@ fn get_command_options() -> CommandOptions {
     )
 }
 
-fn generate_graph(path: String, result: &StakedCardanoPoolResult) {
+fn generate_graph(path: String, result: &StakedCardanoPoolResult, output_to_stdout : bool) {
     let prices = &result.price_historical;
     let adas = &result.amount_historical;
 
@@ -245,25 +268,33 @@ fn generate_graph(path: String, result: &StakedCardanoPoolResult) {
 
     let svg = format!("{}", poloto::disp(|w| p.simple_theme(w)));
 
-    if let Ok(file) = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&path)
-        .as_mut()
-    {
-        if let Err(e) = file.write_all(svg.as_bytes()) {
+    if output_to_stdout {
+        println!("<div class='svg'>{}</div>", svg);
+    }
+    else {
+        if let Ok(file) = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .as_mut()
+        {
+            if let Err(e) = file.write_all(svg.as_bytes()) {
+                println!("Error: Failed to Write SVG [{}] to Disk.", &path);
+                println!("Reason: {}", e);
+            }
+        } else {
             println!("Error: Failed to Write SVG [{}] to Disk.", &path);
-            println!("Reason: {}", e);
+            println!("Reason: Unknown");
         }
-    } else {
-        println!("Error: Failed to Write SVG [{}] to Disk.", &path);
-        println!("Reason: Unknown");
     }
 }
 
-fn execute_json(buffer: &String, args: &CommandOptions) {
+fn execute_json(buffer: &String, args: &CommandOptions, output_to_stdout : bool) {
     let pool_info: StakedCardanoPool = serde_json::from_str(&buffer).unwrap();
-    let result = calculate_staked_pool(&pool_info, &args);
+    if output_to_stdout {
+        println!("<div class='output'>"); // Refactor this to a function
+    }
+    let result = calculate_staked_pool(&pool_info, &args, output_to_stdout);
     println!(
         "Final Result: {} ADA @ ${:.2} = ${:.2} Gainz: {:.2}%",
         result.final_ada_amount,
@@ -271,9 +302,9 @@ fn execute_json(buffer: &String, args: &CommandOptions) {
         result.total(),
         100.0 + result.yield_as_percentage(&pool_info)
     );
-    if args.generate_graph {
-        generate_graph(format!("ada_growth_graph_{}.svg", get_epoch_ms()), &result);
-        println!("Generated Graph in SVG Format Under ada_growth_graph_<timestamp>.svg");
+    if output_to_stdout {
+        println!("<br>"); // Refactor this to a function
+        println!("</div>"); // Refactor this to a function
     }
 }
 
@@ -283,9 +314,9 @@ fn main() {
         println!("CSV will be saved in current working directory.");
     }
     if let Some(buffer) = &args.json_option {
-        execute_json(buffer, args);
+        execute_json(buffer, args, true);
     } else if let Ok(buffer) = &read_to_string("pool.json") {
-        execute_json(buffer, args);
+        execute_json(buffer, args, false);
     } else {
         println!(
             "Failed to find pool.json in current working directory or through command option!"
