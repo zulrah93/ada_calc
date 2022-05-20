@@ -1,7 +1,7 @@
 /*
 
-ADA Staking CLI Tool (Not Offical or Investment Advice ⚠️)
-Copyright (C) 2022  zulrah
+ADA Staking CLI Tool (⚠️ Not Offical or Investment Advice ⚠️)
+Copyright (C) 2022  zulrah93 <1s16slrse@mozmail.com>
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -46,7 +46,7 @@ struct StakedCardanoPool {
     years_holding: f64, // How many years will it be staked less than 1 one means less than a year for exaple 0.5 means 365.25/2 (roughly since its floating point values)
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct StakedCardanoPoolResult {
     final_ada_amount: f64,
     final_ada_price: f64,
@@ -230,13 +230,14 @@ fn get_command_options() -> CommandOptions {
     ))
     .arg( arg!(
         -p --pool_json <JSON> "Pass JSON input via command option"
-    ))
+    ).required(false))
     .get_matches();
-    let json = if matches.is_present("pool_json") {
+    let json = if matches.is_present("pool_json") { 
         Some(String::from(
             matches.value_of("pool_json").unwrap_or_default(),
         ))
     } else {
+        println!("Found none finding in current working directory...");
         None
     };
     CommandOptions::new(
@@ -247,7 +248,7 @@ fn get_command_options() -> CommandOptions {
     )
 }
 
-fn generate_graph(path: String, result: &StakedCardanoPoolResult, output_to_stdout : bool) {
+fn generate_graph(optional_path: Option<String>, result: &StakedCardanoPoolResult, output_to_stdout : bool) {
     let prices = &result.price_historical;
     let adas = &result.amount_historical;
 
@@ -269,27 +270,27 @@ fn generate_graph(path: String, result: &StakedCardanoPoolResult, output_to_stdo
     let svg = format!("{}", poloto::disp(|w| p.simple_theme(w)));
 
     if output_to_stdout {
-        println!("<div class='svg'>{}</div>", svg);
+        println!("<div class='svg' style='width:1in;height:1in'>{}</div>", svg);
     }
-    else {
+    else if let Some(path) = optional_path.as_ref() {
         if let Ok(file) = OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(&path)
+            .open(path)
             .as_mut()
         {
             if let Err(e) = file.write_all(svg.as_bytes()) {
-                println!("Error: Failed to Write SVG [{}] to Disk.", &path);
+                println!("Error: Failed to Write SVG [{}] to Disk.", path);
                 println!("Reason: {}", e);
             }
         } else {
-            println!("Error: Failed to Write SVG [{}] to Disk.", &path);
+            println!("Error: Failed to Write SVG [{}] to Disk.", path);
             println!("Reason: Unknown");
         }
     }
 }
 
-fn execute_json(buffer: &String, args: &CommandOptions, output_to_stdout : bool) {
+fn execute_json(buffer: &String, args: &CommandOptions, output_to_stdout : bool) -> Option<StakedCardanoPoolResult> {
     let pool_info: StakedCardanoPool = serde_json::from_str(&buffer).unwrap();
     if output_to_stdout {
         println!("<div class='output'>"); // Refactor this to a function
@@ -305,6 +306,14 @@ fn execute_json(buffer: &String, args: &CommandOptions, output_to_stdout : bool)
     if output_to_stdout {
         println!("<br>"); // Refactor this to a function
         println!("</div>"); // Refactor this to a function
+        generate_graph(None, &result, output_to_stdout);
+    }
+
+    if output_to_stdout {
+        None
+    }
+    else {
+        Some(result)
     }
 }
 
@@ -316,7 +325,11 @@ fn main() {
     if let Some(buffer) = &args.json_option {
         execute_json(buffer, args, true);
     } else if let Ok(buffer) = &read_to_string("pool.json") {
-        execute_json(buffer, args, false);
+        let result = execute_json(buffer, args, false).unwrap();
+        if args.generate_graph {
+            generate_graph(Some(format!("ada_growth_graph_{}.svg", get_epoch_ms())), &result, false);
+            println!("Generated Graph in SVG Format Under ada_growth_graph_<timestamp>.svg");
+        }
     } else {
         println!(
             "Failed to find pool.json in current working directory or through command option!"
